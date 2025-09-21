@@ -273,7 +273,7 @@ export default function VideoPlayer() {
   }
 
   return (
-    <div className="w-full mx-auto bg-card rounded-lg overflow-hidden shadow-lg">
+    <div className="w-full bg-card overflow-hidden shadow-lg">
       <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
 
       {/* Video Element */}
