@@ -162,26 +162,51 @@ export default function VideoPlayer() {
   const parseTimeFromInput = (timeString: string): number => {
     const parts = timeString.split(":")
     if (parts.length === 2) {
-      const minutes = Number.parseInt(parts[0]) || 0
-      const seconds = Number.parseInt(parts[1]) || 0
+      const minutes = Number.parseFloat(parts[0]) || 0
+      const seconds = Number.parseFloat(parts[1]) || 0
       return minutes * 60 + seconds
     }
-    // Fallback for just seconds
-    return Number.parseInt(timeString) || 0
+    // Fallback for just seconds (including decimals)
+    return Number.parseFloat(timeString) || 0
   }
 
   const formatTimeForInput = (seconds: number) => {
     const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = Math.floor(seconds % 60)
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
+    const remainingSeconds = seconds % 60
+
+    // If there are decimal places, show them
+    if (remainingSeconds % 1 !== 0) {
+      return `${minutes}:${remainingSeconds.toFixed(1).padStart(4, "0")}`
+    } else {
+      return `${minutes}:${Math.floor(remainingSeconds).toString().padStart(2, "0")}`
+    }
   }
 
   const handleCustomTimestampChange = (key: keyof typeof customTimestamps, value: string) => {
+    if (value === "") {
+      setCustomTimestamps((prev) => ({
+        ...prev,
+        [key]: 0,
+      }))
+      return
+    }
+
+    // Allow partial input while typing (like "1:" or "1:3")
+    const colonCount = (value.match(/:/g) || []).length
+    if (colonCount > 1) return // Don't allow multiple colons
+
+    // If it ends with colon, allow it for typing
+    if (value.endsWith(":")) {
+      return
+    }
+
     const numValue = parseTimeFromInput(value)
-    setCustomTimestamps((prev) => ({
-      ...prev,
-      [key]: Math.max(0, numValue),
-    }))
+    if (!isNaN(numValue) && numValue >= 0) {
+      setCustomTimestamps((prev) => ({
+        ...prev,
+        [key]: numValue,
+      }))
+    }
   }
 
   const handleKeyPress = useCallback(
@@ -376,7 +401,7 @@ export default function VideoPlayer() {
       )}
 
       <div className="p-4 border-t bg-muted/30">
-        <h3 className="text-sm font-medium mb-3 text-muted-foreground">Custom Timestamps (MM:SS)</h3>
+        <h3 className="text-sm font-medium mb-3 text-muted-foreground">Custom Timestamps (MM:SS.s)</h3>
         <div className="grid grid-cols-5 gap-3">
           {Object.entries(customTimestamps).map(([key, value]) => (
             <div key={key} className="flex flex-col items-center gap-1">
@@ -386,7 +411,7 @@ export default function VideoPlayer() {
                 value={formatTimeForInput(value)}
                 onChange={(e) => handleCustomTimestampChange(key as keyof typeof customTimestamps, e.target.value)}
                 className="w-full text-center text-sm"
-                placeholder="0:00"
+                placeholder="0:00.0"
               />
             </div>
           ))}
